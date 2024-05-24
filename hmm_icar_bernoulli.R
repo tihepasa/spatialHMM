@@ -8,7 +8,7 @@ library(tidyr)
 # N, number of regions
 # n_neighbours, number of neighbours for each region as a vector
 # neighbours, matrix of neighbours: row represents a region, each cell holds the id number of the neighbour
-# is_measles, matrix of deaths: row represents a region, column a date
+# is_measles, matrix of deaths: row represents a region, column a date, true = observation, false = no observation, NA = missing
 # missing, matrix indicating missingness: row represents a region, column a date; 0 = present, 1 = missing
 par <- readRDS("measlesdata.rds")
 
