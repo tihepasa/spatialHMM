@@ -11,6 +11,7 @@ This repository contains the following files:
 - `hmm_icar_bernoulli.R`: R codes to fit the model. This file also includes description of the data.
 - `hmm_changepoint.stan`: technical specification of the change point model in Stan language.
 - `hmm_changepoint.R`: R codes to fit the change point model.
+- `supplementary_material.pdf`: the supplementary materials as one .pdf file.
 
 In addition, all the supplementary figures can be found from the folder `figures`.
 
