@@ -22,6 +22,8 @@ Supplementary tables 1 and 2 describe the transition matrix and the time-invaria
 
 ![plot](./figures/supplementary_table2.png)
 
+![plot](./figures/supplementary_table3.png)
+
 ## Figures
 
 Supplementary figures 1-5 illustrate the estimated states, spatial parameters and seasonal effect of the four-state model.
@@ -35,3 +37,8 @@ Supplementary figures 1-5 illustrate the estimated states, spatial parameters an
 
 ![plot](./figures/supplementary_fig5.png)
 
+## Leave-one-out cross validation for hidden Markov models
+
+Supplementary theory for performing the approximate leave-one-out cross-validation.
+
+![plot](./figures/theory.png)

@@ -28,6 +28,28 @@ functions {
     }
     return log_sum_exp(log_alpha);
   }
+  // Function for computing posterior probabilities of states in log-scale
+  matrix log_posterior_prob(matrix log_py, int S, int T, matrix log_A, vector log_rho) {
+    matrix[S, T] log_alpha;
+    matrix[S, T] log_beta;
+    vector[S] tmp;
+    // forward
+    log_alpha[, 1] = log_rho + log_py[ : , 1];
+    for (t in 2:T) {
+      for (s in 1:S) {
+        log_alpha[s, t] = log_sum_exp(log_alpha[, t - 1] + log_A[:, s] + log_py[s, t]);
+      }
+    }
+    // backward
+    log_beta[, T] = rep_vector(0, S);
+    for (tt in 1:(T - 1)) {
+      int t = T - tt;
+      for (s in 1:S) {
+        log_beta[s, t] = log_sum_exp(log_A[s, :]' + log_beta[:, t + 1] + log_py[, t + 1]);
+      }
+    }
+    return log_alpha + log_beta - log_sum_exp(log_alpha[, T]);
+  }
   // Function for computing Q of QR decomposition
   vector create_Q(int N) {
     vector[2 * N] Q;
@@ -63,10 +85,11 @@ data {
   array[T + 1] int<lower = 0> cum_n; // cumulative sum of nationwide monthly non-missing observations, i.e. cumsum(n_t)
 }
 transformed data {
-  // matrix of the deaths array
-  matrix[N, T] deaths_matrix;
+  // matrix of the deaths array, initialize to contain 2s for generated quantities block
+  // otherwise fill the observed cells with observed values
+  matrix[N, T] deaths_matrix = rep_matrix(2, N, T);
   for(t in 1:T) {
-    deaths_matrix[, t] = to_vector(deaths[t]);
+    deaths_matrix[ind[(cum_n[t] + 1):cum_n[t + 1]], t] = to_vector(deaths[t, ind[(cum_n[t] + 1):cum_n[t + 1]]]);
   }
   
   // scale parameter for the sum constrained prior
@@ -88,7 +111,7 @@ transformed data {
   for(s in 1:S) prior_A[s, s] = 2 * S;
   // favors a bit cases where we stay in one state at least for a while
   // apply(MCMCpack::rdirichlet(10000, c(2 * S, rep(0.5, S - 1))), 2, quantile, probs = c(0.005,0.5,0.995)) 
- 
+  
   vector[S - 1] prior_m = rep_vector(5, S - 1);
   // apply(MCMCpack::rdirichlet(1e5,5*rep(1, 4)), 2, quantile, probs = c(0.005, 0.5, 0.995))
 }
@@ -104,7 +127,7 @@ parameters {
   
   // ICAR components, one per state
   matrix[N, S] phi;
-
+  
   // parts of the ordered common intercept, one per state (phi's are constrained to mean zero)
   real mu_1; // intercept for the first state
   real<lower = mu_1> mu_S; // intercept for the last state
@@ -149,11 +172,11 @@ transformed parameters {
     }
     for (t in 1:T) {
       for (s in 1:S) {
-       // log-bernoulli = y*logit_p - log(1 + exp(logit_p))
-       // death_matrix is the original deaths array transformed to matrix in the transformed data block
+        // log-bernoulli = y*logit_p - log(1 + exp(logit_p))
+        // death_matrix is the original deaths array transformed to matrix in the transformed data block
         log_omega[s, t] = sum(deaths_matrix[ind[(cum_n[t] + 1):cum_n[t + 1]], t] .* 
-                                  logit_p[month[t], ind[(cum_n[t] + 1):cum_n[t + 1]], s] - 
-                              logit_p2[month[t], ind[(cum_n[t] + 1):cum_n[t + 1]], s]);
+        logit_p[month[t], ind[(cum_n[t] + 1):cum_n[t + 1]], s] - 
+        logit_p2[month[t], ind[(cum_n[t] + 1):cum_n[t + 1]], s]);
       }
     }
   }
@@ -192,9 +215,33 @@ model {
     sum(phi[, s]) ~ normal(0, 0.001 * N);
   }
   
-  target += loglik(log_omega, S, T, log(Gamma), log(rho));
+//  target += loglik(log_omega, S, T, log(Gamma), log(rho)); // self implemented version to avoid numerical issues
+  target += hmm_marginal(log_omega, Gamma, rho);
 }
 generated quantities {
   // samples of latent state trajectories
   array[T] int x = hmm_latent_rng(log_omega, Gamma, rho);
+  
+  // get the log likelihood values, formula derived in supplements
+  // comment out if not needed since this takes time and memory
+  vector[n_obs] log_lik;
+  {
+    // no need to save b, or X; hence the local environment
+    vector[N] ll;
+    vector[S] log_b; // 1 / P(y_it = m | z_t = s), s = 1,..., S
+    // marginal log-posterior probabilities of each hidden state value
+    matrix[S, T] log_X = log_posterior_prob(log_omega, S, T, log(Gamma), log(rho));
+    //matrix[S, T] log_X = log(hmm_hidden_state_prob(log_omega, Gamma, rho)); // numerical issues, does not work
+    for (t in 1:T) {
+      for (i in 1:N) {
+        if (deaths_matrix[i, t] < 2) {
+          for (s in 1:S) {
+            log_b[s] = bernoulli_logit_lpmf(deaths[t, i] | gamma[month[t]] + mu[s] + lambda[i] + sigma_phi * phi[i, s]);
+          }
+          ll[i] = -log_sum_exp(log_X[, t] - log_b);
+        }
+      }
+      log_lik[(cum_n[t] + 1):cum_n[t + 1]] = ll[ind[(cum_n[t] + 1):cum_n[t + 1]]];
+    }
+  }
 }
