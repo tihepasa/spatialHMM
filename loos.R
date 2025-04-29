@@ -1,12 +1,9 @@
-# estimate the spatial HMM with S states
+# approximate loo for the hmm
 library(cmdstanr)
 library(rstan)
 library(dplyr)
 library(tidyr)
 library(loo)
-
-#model <- cmdstan_model("hmm_icar_bernoulli_loo.stan", stanc_options=list("O1"))
-set.seed(1)
 
 # number of states, could be 4 or 6 or something else
 S1 <- 4
