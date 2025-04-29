@@ -40,6 +40,6 @@ Supplementary figures 1-5 illustrate the estimated states, spatial parameters an
 
 ## Leave-one-out cross validation for hidden Markov models
 
-Supplementary theory for performing the approximate leave-one-out cross-validation.
+Supplementary theory for calculating the leave-one-out log-likelihoods used for the cross-validation.
 
 ![plot](./figures/theory.png)
