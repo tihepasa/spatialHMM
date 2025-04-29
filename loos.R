@@ -10,8 +10,8 @@ S1 <- 4
 S2 <- 5
 
 # read the saved model object
-fit1 <- readRDS(paste0("hmm_icar_bern_", S1, "s.rds"))
-fit2 <- readRDS(paste0("hmm_icar_bern_", S2, "s.rds"))
+fit1 <- readRDS(paste0("cmdstanfit_hmm_icar_bernoulli_", S1, "s.rds"))
+fit2 <- readRDS(paste0("cmdstanfit_hmm_icar_bernoulli_", S2, "s.rds"))
 
 # extract draws
 draws1 <- fit1$draws(variables = "log_lik")

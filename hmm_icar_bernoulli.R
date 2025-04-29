@@ -83,7 +83,8 @@ fit <- model$sample(data = pars, init = inits,
 
 # save the model with a suitable name for future use as a CmdStan object or as a Stan object
 # the stan fit is needed for the changepoint analysis
-#fit$save_object(paste0("cmdstanfit_hmm_icar_bernoulli.rds"))
+#fit$save_object("cmdstanfit_hmm_icar_bernoulli_4s.rds") # use these for the LOO
+#fit$save_object("cmdstanfit_hmm_icar_bernoulli_5s.rds")
 out <- rstan::read_stan_csv(fit$output_files())
 saveRDS(out, file = paste0("fit_hmm_icar_bernoulli.rds"))
 
